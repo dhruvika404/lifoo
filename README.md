@@ -1,1 +1,1 @@
-# lifoo
+# lifoo-admin
