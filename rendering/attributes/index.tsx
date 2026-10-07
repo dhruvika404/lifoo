@@ -4,8 +4,9 @@ import { useState } from "react";
 import { NutritionTab } from "./nutritionTab";
 import { IngredientTab } from "./ingredientTab";
 import { KeywordTab } from "./keywordTab";
+import { TagTab } from "./tagTab";
 
-type ActiveTab = "nutrition" | "ingredient" | "keyword";
+type ActiveTab = "nutrition" | "ingredient" | "keyword" | "tag";
 
 export function AttributesModule() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("nutrition");
@@ -14,6 +15,7 @@ export function AttributesModule() {
     { id: "nutrition", label: "Nutritions" },
     { id: "ingredient", label: "Ingredients" },
     { id: "keyword", label: "Keywords" },
+    { id: "tag", label: "Tags" },
   ];
 
   return (
@@ -38,6 +40,7 @@ export function AttributesModule() {
           {activeTab === "nutrition" && <NutritionTab />}
           {activeTab === "ingredient" && <IngredientTab />}
           {activeTab === "keyword" && <KeywordTab />}
+          {activeTab === "tag" && <TagTab />}
         </div>
     </div>
   );

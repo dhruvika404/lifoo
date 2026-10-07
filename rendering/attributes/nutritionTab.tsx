@@ -1,18 +1,18 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { 
+import {
   StatusBadge
 } from "@/components/pageShell";
 import { TablePagination } from "@/components/tablePagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Plus, 
-  Search, 
-  MoreVertical, 
-  Edit, 
-  Trash2, 
+import {
+  Plus,
+  Search,
+  MoreVertical,
+  Edit,
+  Trash2,
   Image as ImageIcon,
   Loader2,
   RefreshCw,
@@ -36,7 +36,6 @@ import { nutritionService, Nutrition } from "@/services/nutrition.service";
 const nutritionSchema = z.object({
   name: z.string().min(1, "Name is required"),
   defaultUnit: z.string().min(1, "Default unit is required"),
-  displayOrder: z.number().optional(),
   icon: z.string().optional(),
 });
 type NutritionFormValues = z.infer<typeof nutritionSchema>;
@@ -48,7 +47,7 @@ export function NutritionTab() {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [limit, setLimit] = useState(10);
-  
+
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editItem, setEditItem] = useState<Nutrition | null>(null);
@@ -131,7 +130,6 @@ export function NutritionTab() {
               <tr className="border-b border-border/60 bg-muted/30 text-muted-foreground text-xs uppercase font-semibold">
                 <th className="py-3 px-4">Nutrition</th>
                 <th className="py-3 px-4">Unit</th>
-                <th className="py-3 px-4 text-center">Sort Order</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -139,14 +137,14 @@ export function NutritionTab() {
             <tbody className="divide-y divide-border/40">
               {loading && nutritions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={4} className="py-12 text-center text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#2d7a4f] mb-2" />
                     Loading nutritions...
                   </td>
                 </tr>
               ) : nutritions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={4} className="py-12 text-center text-muted-foreground">
                     No nutritions found.
                   </td>
                 </tr>
@@ -169,9 +167,6 @@ export function NutritionTab() {
                       </div>
                     </td>
                     <td className="py-3 px-4 text-foreground/80 font-medium text-sm">{item.defaultUnit}</td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="text-xs font-mono text-muted-foreground">{item.sortOrder}</span>
-                    </td>
                     <td className="py-3 px-4">
                       <StatusBadge value={item.status} />
                     </td>
@@ -238,36 +233,36 @@ export function NutritionTab() {
         />
       </div>
 
-      <AddNutritionModal 
-        isOpen={isAddOpen} 
-        onClose={() => setIsAddOpen(false)} 
-        onSuccess={() => fetchNutritions()} 
+      <AddNutritionModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onSuccess={() => fetchNutritions()}
       />
-      
+
       {editItem && (
-        <EditNutritionModal 
-          item={editItem} 
-          isOpen={!!editItem} 
-          onClose={() => setEditItem(null)} 
-          onSuccess={() => fetchNutritions()} 
+        <EditNutritionModal
+          item={editItem}
+          isOpen={!!editItem}
+          onClose={() => setEditItem(null)}
+          onSuccess={() => fetchNutritions()}
         />
       )}
 
       {deleteItem && (
-        <DeleteNutritionModal 
-          item={deleteItem} 
-          isOpen={!!deleteItem} 
-          onClose={() => setDeleteItem(null)} 
-          onSuccess={() => fetchNutritions()} 
+        <DeleteNutritionModal
+          item={deleteItem}
+          isOpen={!!deleteItem}
+          onClose={() => setDeleteItem(null)}
+          onSuccess={() => fetchNutritions()}
         />
       )}
 
       {uploadItem && (
-        <UploadIconModal 
-          item={uploadItem} 
-          isOpen={!!uploadItem} 
-          onClose={() => setUploadItem(null)} 
-          onSuccess={() => fetchNutritions()} 
+        <UploadIconModal
+          item={uploadItem}
+          isOpen={!!uploadItem}
+          onClose={() => setUploadItem(null)}
+          onSuccess={() => fetchNutritions()}
         />
       )}
     </div>
@@ -277,19 +272,45 @@ export function NutritionTab() {
 function AddNutritionModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
   const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<NutritionFormValues>({
     resolver: zodResolver(nutritionSchema),
-    defaultValues: { name: "", defaultUnit: "g", displayOrder: 0, icon: "" }
+    defaultValues: { name: "", defaultUnit: "g", icon: "" }
   });
 
-  useEffect(() => { if (isOpen) reset(); }, [isOpen, reset]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      reset();
+      setSelectedFile(null);
+    }
+  }, [isOpen, reset]);
 
   const onSubmit = async (values: NutritionFormValues) => {
+    setIsUploading(true);
     try {
-      await nutritionService.createNutrition(values);
+      const created = await nutritionService.createNutrition(values);
+      const createdId = created.data?.id || (created as any).id;
+
+      if (selectedFile && createdId) {
+        const res = await nutritionService.getUploadUrl(selectedFile.type, createdId);
+        const data = res?.data || res;
+        if (data?.presignedUrl) {
+          await fetch(data.presignedUrl, {
+            method: "PUT",
+            headers: { "Content-Type": selectedFile.type },
+            body: selectedFile,
+          });
+        }
+      }
+
       toast.success("Nutrition created");
       onSuccess();
       onClose();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to create");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -311,14 +332,41 @@ function AddNutritionModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; on
             <Input {...register("defaultUnit")} placeholder="e.g. g, mg, kcal" />
             {errors.defaultUnit && <p className="text-xs text-destructive">{errors.defaultUnit.message}</p>}
           </div>
+
+
           <div className="space-y-2">
-            <label className="text-sm font-medium">Display Order</label>
-            <Input type="number" {...register("displayOrder", { valueAsNumber: true })} />
+            <label className="text-sm font-medium">Icon (Optional)</label>
+            <div className="flex items-center gap-4">
+              <div
+                className="h-16 w-16 bg-muted border border-border rounded-lg flex items-center justify-center overflow-hidden cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {selectedFile ? (
+                  <img src={URL.createObjectURL(selectedFile)} alt="Preview" className="h-full w-full object-contain p-2" />
+                ) : (
+                  <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
+                )}
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                Choose File
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setSelectedFile(file);
+                }}
+              />
+            </div>
           </div>
+
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting || isUploading}>Cancel</Button>
+            <Button type="submit" disabled={isSubmitting || isUploading}>
+              {(isSubmitting || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save
             </Button>
           </DialogFooter>
         </form>
@@ -327,23 +375,53 @@ function AddNutritionModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; on
   );
 }
 
-function EditNutritionModal({ item, isOpen, onClose, onSuccess }: { item: Nutrition; isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
-  const [name, setName] = useState(item.name);
-  const [status, setStatus] = useState(item.status);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const editNutritionSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  status: z.string().min(1, "Status is required"),
+});
+type EditNutritionFormValues = z.infer<typeof editNutritionSchema>;
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+function EditNutritionModal({ item, isOpen, onClose, onSuccess }: { item: Nutrition; isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<EditNutritionFormValues>({
+    resolver: zodResolver(editNutritionSchema),
+    defaultValues: { name: item.name, status: item.status },
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      reset({ name: item.name, status: item.status });
+      setSelectedFile(null);
+    }
+  }, [isOpen, item, reset]);
+
+  const onSubmit = async (values: EditNutritionFormValues) => {
+    setIsUploading(true);
     try {
-      await nutritionService.updateNutrition(item.id, { name, status });
+      await nutritionService.updateNutrition(item.id, values);
+
+      if (selectedFile) {
+        const res = await nutritionService.getUploadUrl(selectedFile.type, item.id);
+        const data = res?.data || res;
+        if (data?.presignedUrl) {
+          await fetch(data.presignedUrl, {
+            method: "PUT",
+            headers: { "Content-Type": selectedFile.type },
+            body: selectedFile,
+          });
+        }
+      }
+
       toast.success("Nutrition updated");
       onSuccess();
       onClose();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to update");
     } finally {
-      setIsSubmitting(false);
+      setIsUploading(false);
     }
   };
 
@@ -353,27 +431,60 @@ function EditNutritionModal({ item, isOpen, onClose, onSuccess }: { item: Nutrit
         <DialogHeader>
           <DialogTitle>Edit Nutrition</DialogTitle>
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Name</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input {...register("name")} required />
+            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
-            <select 
-              value={status} 
-              onChange={(e) => setStatus(e.target.value)}
+            <select
+              {...register("status")}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
             >
               <option value="approved">Approved</option>
               <option value="pending">Pending</option>
               <option value="rejected">Rejected</option>
             </select>
+            {errors.status && <p className="text-xs text-destructive">{errors.status.message}</p>}
           </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Icon (Optional)</label>
+            <div className="flex items-center gap-4">
+              <div
+                className="h-16 w-16 bg-muted border border-border rounded-lg flex items-center justify-center overflow-hidden cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {selectedFile ? (
+                  <img src={URL.createObjectURL(selectedFile)} alt="Preview" className="h-full w-full object-contain p-2" />
+                ) : item.icon ? (
+                  <img src={item.icon} alt="Icon" className="h-full w-full object-contain p-2" />
+                ) : (
+                  <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
+                )}
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                Change File
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setSelectedFile(file);
+                }}
+              />
+            </div>
+          </div>
+
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Update
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting || isUploading}>Cancel</Button>
+            <Button type="submit" disabled={isSubmitting || isUploading}>
+              {(isSubmitting || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Update
             </Button>
           </DialogFooter>
         </form>
@@ -464,21 +575,21 @@ function UploadIconModal({ item, isOpen, onClose, onSuccess }: { item: Nutrition
               <Scale className="h-8 w-8 text-muted-foreground/50" />
             )}
           </div>
-          
-          <Button 
-            onClick={() => fileInputRef.current?.click()} 
+
+          <Button
+            onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             className="w-full max-w-xs"
           >
             {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ImageIcon className="h-4 w-4 mr-2" />}
             {uploading ? "Uploading..." : "Select New Image"}
           </Button>
-          <input 
-            ref={fileInputRef} 
-            type="file" 
-            accept="image/*" 
-            className="hidden" 
-            onChange={handleUpload} 
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleUpload}
           />
         </div>
         <DialogFooter>
