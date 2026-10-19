@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import {
-  AlertCircle, Camera, CheckCircle2, RotateCcw,
+  Camera, RotateCcw,
   Check, X, Clock, Tag, ChefHat,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { ProductVerification, ReviewPayload, VerificationStatus } from "@/services/verification.service";
+import type { ProductVerification, ReviewPayload } from "@/services/verification.service";
 import { ReviewDialog } from "@/components/reviewDialog";
 
 interface MenuTabProps {
@@ -53,54 +53,28 @@ export function MenuTab({ products, isReviewing, onReview }: MenuTabProps) {
 
   if (products.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 border border-dashed rounded-xl bg-card">
+      <div className="flex flex-col items-center justify-center p-12 border border-dashed rounded-xl bg-card text-center">
         <Camera className="h-10 w-10 text-muted-foreground mb-3" />
         <h3 className="font-semibold text-lg">No menu item submissions found</h3>
         <p className="text-sm text-muted-foreground mt-1">
           No products match the current filters.
         </p>
-        <div className="mt-6 flex items-center gap-3 p-4 rounded-xl border border-dashed border-[#2d7a4f]/30 bg-[#2d7a4f]/5 max-w-md w-full text-left">
-          <Camera className="h-5 w-5 text-[#2d7a4f] shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-foreground">Full Menu Review</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Dish photos, nutritional compliance, and FSSAI category mapping are included in the review flow.
-            </p>
-          </div>
-        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Total Items", count: products.length, icon: ChefHat, color: "text-foreground", bg: "bg-card" },
-          { label: "Approved", count: products.filter((p) => p.status === "approved").length, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50/50" },
-          { label: "Pending", count: products.filter((p) => p.status === "pending").length, icon: Clock, color: "text-slate-600", bg: "bg-slate-50/50" },
-          { label: "Action Required", count: products.filter((p) => p.status === "rejected" || p.status === "resubmission").length, icon: AlertCircle, color: "text-red-600", bg: "bg-red-50/50" },
-        ].map(({ label, count, icon: Icon, color, bg }) => (
-          <div key={label} className={`flex items-center gap-3 p-3 rounded-xl border border-border ${bg}`}>
-            <Icon className={`h-5 w-5 shrink-0 ${color}`} />
-            <div>
-              <p className={`text-lg font-bold leading-none ${color}`}>{count}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {products.map((product) => {
           const cardBorder =
             product.status === "approved"
               ? "border-emerald-500/30 hover:border-emerald-500/50"
               : product.status === "rejected"
-              ? "border-destructive/30 hover:border-destructive/50"
-              : product.status === "resubmission"
-              ? "border-amber-500/30 hover:border-amber-500/50"
-              : "border-border hover:shadow-md hover:border-slate-300";
+                ? "border-destructive/30 hover:border-destructive/50"
+                : product.status === "resubmission"
+                  ? "border-amber-500/30 hover:border-amber-500/50"
+                  : "border-border hover:shadow-md hover:border-slate-300";
 
           return (
             <div

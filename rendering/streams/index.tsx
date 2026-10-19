@@ -203,7 +203,7 @@ export function StreamsModule() {
       setIsLoadingToken(true);
       setTokenError(null);
       try {
-        const roomId = watchingStream.raw?.livekitRoomName || `slot_${watchingStream.slotId}`;
+        const roomId = watchingStream.roomId || watchingStream.raw?.roomId || watchingStream.raw?.livekitRoomName || watchingStream.slotId || `slot_${watchingStream.slotId}`;
         const identity = user?.id || `admin_${Date.now()}`;
 
         const res = await streamService.getAdminToken({ roomId, identity });
@@ -242,28 +242,34 @@ export function StreamsModule() {
   const { chefs, fetchChefs } = useChefStore();
 
   const streams = useMemo(() => {
-    return rawStreams.map((item) => {
+    return rawStreams.map((item: any) => {
       const chef = chefs.find((c) => c.userId === item.chefId || c.user?.id === item.chefId);
-      const chefName = chef ? (chef.displayName || chef.businessName) : `Chef (${item.chefId.slice(0, 8)})`;
+      const chefName = item.chefName || (chef ? (chef.displayName || chef.businessName) : (item.chefId ? `Chef (${item.chefId.slice(0, 8)})` : "Chef"));
 
+      const rawTime = item.startTime || item.startedAt;
       let formattedStart = "N/A";
-      if (item.startedAt) {
-        const d = new Date(item.startedAt);
-        formattedStart = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (rawTime) {
+        const d = new Date(rawTime);
+        formattedStart = isNaN(d.getTime()) ? "N/A" : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       }
 
       let healthStatus = "Healthy";
-      if (item.state !== "active" || item.reconnectCount > 2) {
+      if (item.health) {
+        healthStatus = item.health.charAt(0).toUpperCase() + item.health.slice(1);
+      } else if (item.state !== "active" || (item.reconnectCount && item.reconnectCount > 2)) {
         healthStatus = "Degraded";
       }
+
+      const displayRoomId = item.roomId || item.livekitRoomName || item.slotId || "N/A";
 
       return {
         id: item.id,
         chef: chefName,
         chefId: item.chefId,
-        slotId: item.slotId,
-        order: item.livekitRoomName || item.slotId || "N/A",
-        viewers: 0,
+        slotId: item.slotId || item.id,
+        roomId: displayRoomId,
+        order: displayRoomId,
+        viewers: item.viewerCount ?? item.viewers ?? 0,
         start: formattedStart,
         health: healthStatus,
         raw: item

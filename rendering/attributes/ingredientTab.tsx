@@ -1,9 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  StatusBadge
-} from "@/components/pageShell";
 import { TablePagination } from "@/components/tablePagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +14,10 @@ import {
   Loader2,
   RefreshCw,
   Scale,
-  X
+  X,
+  MoreVertical,
+  CheckCircle2,
+  Ban
 } from "lucide-react";
 import {
   Dialog,
@@ -26,6 +26,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -35,7 +40,6 @@ import { ingredientService, Ingredient } from "@/services/ingredient.service";
 // --- Schema ---
 const ingredientSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1, "Slug is required"),
   description: z.string().optional(),
   isActive: z.boolean(),
 });
@@ -53,7 +57,6 @@ export function IngredientTab() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editItem, setEditItem] = useState<Ingredient | null>(null);
   const [deleteItem, setDeleteItem] = useState<Ingredient | null>(null);
-  const [uploadItem, setUploadItem] = useState<Ingredient | null>(null);
 
   const fetchIngredients = async (q = search, cursor?: string, overrideLimit = limit) => {
     setLoading(true);
@@ -85,15 +88,7 @@ export function IngredientTab() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
-            onClick={() => fetchIngredients()}
-            variant="outline"
-            disabled={loading}
-            className="border-border/60 text-foreground hover:bg-muted gap-1.5 font-medium cursor-pointer"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+
           <Button
             onClick={() => setIsAddOpen(true)}
             className="bg-[#2d7a4f] hover:bg-[#236040] text-white gap-1.5 font-semibold cursor-pointer"
@@ -130,8 +125,8 @@ export function IngredientTab() {
             <thead>
               <tr className="border-b border-border/60 bg-muted/30 text-muted-foreground text-xs uppercase font-semibold">
                 <th className="py-3 px-4">Ingredient</th>
+                <th className="py-3 px-4">Slug</th>
                 <th className="py-3 px-4">Description</th>
-                <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4">Active</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -162,17 +157,12 @@ export function IngredientTab() {
                             <Scale className="h-4 w-4 text-muted-foreground/50" />
                           )}
                         </div>
-                        <div>
-                          <div className="font-semibold text-foreground text-sm">{item.name}</div>
-                          <div className="text-xs text-muted-foreground font-mono">{item.slug}</div>
-                        </div>
+                        <div className="font-semibold text-foreground text-sm">{item.name}</div>
                       </div>
                     </td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground font-mono">{item.slug}</td>
                     <td className="py-3 px-4 text-foreground/80 font-medium text-xs max-w-[200px] truncate" title={item.description || ""}>
                       {item.description || "-"}
-                    </td>
-                    <td className="py-3 px-4">
-                      <StatusBadge value={item.status} />
                     </td>
                     <td className="py-3 px-4">
                       <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${item.isActive ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-muted text-muted-foreground border-border"}`}>
@@ -180,35 +170,68 @@ export function IngredientTab() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditItem(item)}
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-                          title="Edit"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setUploadItem(item)}
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-                          title="Upload Icon"
-                        >
-                          <ImageIcon className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteItem(item)}
-                          className="h-8 w-8 text-destructive/80 hover:text-destructive hover:bg-destructive/10 cursor-pointer"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-40 p-1">
+                          <button
+                            onClick={() => setEditItem(item)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors text-left text-foreground cursor-pointer rounded-md"
+                          >
+                            <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+                            Edit
+                          </button>
+                          
+                          {item.isActive ? (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await ingredientService.updateIngredient(item.id, { isActive: false });
+                                  toast.success("Marked as inactive");
+                                  fetchIngredients(search, history.length > 0 ? history[history.length - 1] : undefined, limit);
+                                } catch (err: any) {
+                                  toast.error(err?.response?.data?.message || "Failed to update");
+                                }
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors text-left text-amber-600 hover:text-amber-700 cursor-pointer rounded-md"
+                            >
+                              <Ban className="h-3.5 w-3.5 text-amber-600" />
+                              Mark Inactive
+                            </button>
+                          ) : (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await ingredientService.updateIngredient(item.id, { isActive: true });
+                                  toast.success("Marked as active");
+                                  fetchIngredients(search, history.length > 0 ? history[history.length - 1] : undefined, limit);
+                                } catch (err: any) {
+                                  toast.error(err?.response?.data?.message || "Failed to update");
+                                }
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors text-left text-emerald-600 hover:text-emerald-700 cursor-pointer rounded-md"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                              Mark Active
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => setDeleteItem(item)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors text-left text-destructive hover:text-destructive cursor-pointer rounded-md"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            Delete
+                          </button>
+                        </PopoverContent>
+                      </Popover>
                     </td>
                   </tr>
                 ))
@@ -266,36 +289,21 @@ export function IngredientTab() {
         />
       )}
 
-      {uploadItem && (
-        <UploadIconModal 
-          item={uploadItem} 
-          isOpen={!!uploadItem} 
-          onClose={() => setUploadItem(null)} 
-          onSuccess={() => fetchIngredients(search, history.length > 0 ? history[history.length - 1] : undefined)} 
-        />
-      )}
-
     </div>
   );
 }
 
 function AddIngredientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<IngredientFormValues>({
+  const { register, handleSubmit, reset, setError, formState: { errors, isSubmitting } } = useForm<IngredientFormValues>({
     resolver: zodResolver(ingredientSchema),
-    defaultValues: { name: "", slug: "", description: "", isActive: true }
+    defaultValues: { name: "", description: "", isActive: true }
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Auto-generate slug from name
-  const name = watch("name");
-  useEffect(() => {
-    if (name) {
-      setValue("slug", name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""));
-    }
-  }, [name, setValue]);
+
 
   useEffect(() => { 
     if (isOpen) {
@@ -307,6 +315,14 @@ function AddIngredientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; o
   const onSubmit = async (values: z.infer<typeof ingredientSchema>) => {
     setIsUploading(true);
     try {
+      const existing = await ingredientService.getIngredients({ search: values.name });
+      const duplicate = existing.data?.items?.find((i: Ingredient) => i.name.toLowerCase() === values.name.toLowerCase());
+      if (duplicate) {
+        setError("name", { type: "manual", message: "An ingredient with this name already exists" });
+        setIsUploading(false);
+        return;
+      }
+
       const created = await ingredientService.createIngredient(values);
       const createdId = created.data?.id || (created as any).id;
       
@@ -344,11 +360,7 @@ function AddIngredientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; o
             <Input {...register("name")} placeholder="e.g. Organic Honey" />
             {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Slug</label>
-            <Input {...register("slug")} placeholder="organic-honey" />
-            {errors.slug && <p className="text-xs text-destructive">{errors.slug.message}</p>}
-          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Description</label>
             <Textarea {...register("description")} placeholder="e.g. 100% Pure Raw Forest Honey" className="resize-none" rows={2} />
@@ -384,10 +396,6 @@ function AddIngredientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; o
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pt-2">
-            <input type="checkbox" id="add-active" {...register("isActive")} className="rounded border-gray-300 text-[#2d7a4f] focus:ring-[#2d7a4f]" />
-            <label htmlFor="add-active" className="text-sm font-medium">Active</label>
-          </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting || isUploading}>Cancel</Button>
             <Button type="submit" disabled={isSubmitting || isUploading} className="bg-[#2d7a4f] hover:bg-[#236040] text-white">
@@ -403,31 +411,58 @@ function AddIngredientModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; o
 const editIngredientSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
-  status: z.string().min(1, "Status is required"),
-  isActive: z.boolean(),
 });
 type EditIngredientFormValues = z.infer<typeof editIngredientSchema>;
 
 function EditIngredientModal({ item, isOpen, onClose, onSuccess }: { item: Ingredient; isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<EditIngredientFormValues>({
+  const { register, handleSubmit, reset, setError, formState: { errors, isSubmitting } } = useForm<EditIngredientFormValues>({
     resolver: zodResolver(editIngredientSchema),
-    defaultValues: { name: item.name, description: item.description || "", status: item.status, isActive: item.isActive },
+    defaultValues: { name: item.name, description: item.description || "" },
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      reset({ name: item.name, description: item.description || "", status: item.status, isActive: item.isActive });
+      reset({ name: item.name, description: item.description || "" });
+      setSelectedFile(null);
     }
   }, [isOpen, item, reset]);
 
   const onSubmit = async (values: EditIngredientFormValues) => {
+    setIsUploading(true);
     try {
+      const existing = await ingredientService.getIngredients({ search: values.name });
+      const duplicate = existing.data?.items?.find((i: Ingredient) => i.name.toLowerCase() === values.name.toLowerCase() && i.id !== item.id);
+      if (duplicate) {
+        setError("name", { type: "manual", message: "An ingredient with this name already exists" });
+        setIsUploading(false);
+        return;
+      }
+
       await ingredientService.updateIngredient(item.id, values);
+      
+      if (selectedFile) {
+        const res = await ingredientService.getUploadUrl(selectedFile.type, item.id);
+        const data = res?.data || res;
+        if (data?.presignedUrl) {
+          await fetch(data.presignedUrl, {
+            method: "PUT",
+            headers: { "Content-Type": selectedFile.type },
+            body: selectedFile,
+          });
+        }
+      }
+
       toast.success("Ingredient updated");
       onSuccess();
       onClose();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to update");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -448,25 +483,39 @@ function EditIngredientModal({ item, isOpen, onClose, onSuccess }: { item: Ingre
             <Textarea {...register("description")} rows={2} className="resize-none" />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Status</label>
-            <select
-              {...register("status")}
-              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            >
-              <option value="draft">Draft</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
-            {errors.status && <p className="text-xs text-destructive">{errors.status.message}</p>}
-          </div>
-          <div className="flex items-center gap-2 pt-2">
-            <input type="checkbox" id="edit-active" {...register("isActive")} className="rounded border-gray-300 text-[#2d7a4f] focus:ring-[#2d7a4f]" />
-            <label htmlFor="edit-active" className="text-sm font-medium">Active</label>
+            <label className="text-sm font-medium">Icon (Optional)</label>
+            <div className="flex items-center gap-4">
+              <div 
+                className="h-16 w-16 bg-muted border border-border rounded-lg flex items-center justify-center overflow-hidden cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {selectedFile ? (
+                  <img src={URL.createObjectURL(selectedFile)} alt="Preview" className="h-full w-full object-contain p-2" />
+                ) : item.icon ? (
+                  <img src={item.icon} alt="Icon" className="h-full w-full object-contain p-2" />
+                ) : (
+                  <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
+                )}
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                Change File
+              </Button>
+              <input 
+                ref={fileInputRef} 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setSelectedFile(file);
+                }} 
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
             <Button type="submit" disabled={isSubmitting} className="bg-[#2d7a4f] hover:bg-[#236040] text-white">
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Update
+              {isSubmitting || isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Update
             </Button>
           </DialogFooter>
         </form>
@@ -512,70 +561,3 @@ function DeleteIngredientModal({ item, isOpen, onClose, onSuccess }: { item: Ing
   );
 }
 
-function UploadIconModal({ item, isOpen, onClose, onSuccess }: { item: Ingredient; isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const res = await ingredientService.getUploadUrl(file.type, item.id);
-      const data = res?.data || res;
-      if (!data?.presignedUrl) throw new Error("No upload URL returned");
-
-      const uploadRes = await fetch(data.presignedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!uploadRes.ok) throw new Error("S3 upload failed");
-
-      toast.success("Icon uploaded successfully");
-      onSuccess();
-      onClose();
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to upload icon");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Upload Icon - {item.name}</DialogTitle>
-        </DialogHeader>
-        <div className="py-6 flex flex-col items-center justify-center gap-4">
-          <div className="h-16 w-16 bg-muted border border-border rounded-lg flex items-center justify-center overflow-hidden">
-            {item.icon ? (
-              <img src={item.icon} alt={item.name} className="h-full w-full object-contain p-2" />
-            ) : (
-              <Scale className="h-8 w-8 text-muted-foreground/50" />
-            )}
-          </div>
-          
-          <Button 
-            onClick={() => fileInputRef.current?.click()} 
-            disabled={uploading}
-            className="w-full max-w-xs"
-          >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ImageIcon className="h-4 w-4 mr-2" />}
-            {uploading ? "Uploading..." : "Select New Image"}
-          </Button>
-          <input 
-            ref={fileInputRef} 
-            type="file" 
-            accept="image/*" 
-            className="hidden" 
-            onChange={handleUpload}
-            disabled={uploading}
-          />
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}

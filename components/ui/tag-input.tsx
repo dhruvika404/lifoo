@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 export interface TagInputProps {
   /** Controlled list of tags */
   value: string[];
@@ -66,49 +68,106 @@ export function TagInput({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-1.5 min-h-10 rounded-lg border border-border/60 bg-background px-3 py-1.5",
+        "flex flex-nowrap overflow-hidden items-center gap-1.5 min-h-10 rounded-lg border border-border/60 bg-background px-3 py-1.5",
         "focus-within:ring-2 focus-within:ring-[#2d7a4f]/20 focus-within:border-[#2d7a4f] transition-all",
         disabled && "opacity-60 pointer-events-none cursor-not-allowed bg-muted/30",
         className,
       )}
       onClick={() => !disabled && inputRef.current?.focus()}
     >
-      {value.map((tag) => (
-        <Badge
-          key={tag}
-          variant="secondary"
-          className="flex items-center gap-1 bg-[#2d7a4f]/10 text-[#2d7a4f] border border-[#2d7a4f]/20 font-medium text-xs px-2 py-0.5 rounded"
-        >
-          {tag}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            disabled={disabled}
-            onClick={(e) => {
-              e.stopPropagation();
-              removeTag(tag);
-            }}
-            className="h-4 w-4 rounded-full hover:bg-[#2d7a4f]/20 text-[#2d7a4f] p-0 ml-0.5"
-            aria-label={`Remove tag ${tag}`}
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </Badge>
-      ))}
+      {(() => {
+        let charCount = 0;
+        let visibleCount = 0;
+        for (const tag of value) {
+          charCount += tag.length + 6;
+          if (charCount > 75 && visibleCount > 0) break;
+          visibleCount++;
+        }
+        const visibleTags = value.slice(0, visibleCount);
+        const hiddenTags = value.slice(visibleCount);
 
-      <input
-        ref={inputRef}
-        id={id}
-        type="text"
-        value={inputValue}
-        disabled={disabled}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
-        placeholder={value.length === 0 ? placeholder : ""}
-        className="flex-1 bg-transparent min-w-[140px] text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
-      />
+        return (
+          <>
+            {visibleTags.map((tag) => (
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="shrink-0 flex items-center gap-1 bg-background text-foreground/80 border border-border/60 font-semibold text-xs px-2 py-1 rounded"
+              >
+                {tag}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={disabled}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeTag(tag);
+                  }}
+                  className="h-4 w-4 rounded-full hover:bg-muted p-0 ml-0.5 text-muted-foreground"
+                  aria-label={`Remove tag ${tag}`}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            ))}
+
+            {hiddenTags.length > 0 && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={(e) => e.stopPropagation()}
+                    className="shrink-0 inline-flex items-center text-xs font-semibold px-1.5 py-1 rounded bg-muted text-muted-foreground border border-border/60 hover:bg-muted/80 transition-colors"
+                  >
+                    +{hiddenTags.length}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-2" align="start">
+                  <div className="flex flex-wrap gap-1.5 max-w-[200px]">
+                    {hiddenTags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="flex items-center gap-1 bg-background text-foreground/80 border border-border/60 font-semibold text-xs px-2 py-1 rounded"
+                      >
+                        {tag}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          disabled={disabled}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeTag(tag);
+                          }}
+                          className="h-4 w-4 rounded-full hover:bg-muted p-0 ml-0.5 text-muted-foreground"
+                          aria-label={`Remove tag ${tag}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+
+            <input
+              ref={inputRef}
+              id={id}
+              type="text"
+              value={inputValue}
+              disabled={disabled}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={handleBlur}
+              placeholder={value.length === 0 ? placeholder : ""}
+              className="flex-1 min-w-[50px] bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+            />
+          </>
+        );
+      })()}
     </div>
   );
 }

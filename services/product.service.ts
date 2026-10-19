@@ -44,7 +44,11 @@ export interface UpdateProductPayload {
   weight?: number | null;
   weightUnit?: string | null;
   shelfLifeHours?: number | null;
+  gstRateBps?: number | null;
+  cookingVideoUrl?: string | null;
+  isAvailable?: boolean;
   ingredients?: string[];
+  ingredientsList?: string[];
   allergens?: string[];
   cuisineIds?: string[];
   dietaryTypeIds?: string[];

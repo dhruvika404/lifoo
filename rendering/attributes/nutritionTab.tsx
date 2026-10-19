@@ -1,9 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import {
-  StatusBadge
-} from "@/components/pageShell";
 import { TablePagination } from "@/components/tablePagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +14,9 @@ import {
   Loader2,
   RefreshCw,
   Scale,
-  X
+  X,
+  CheckCircle2,
+  Ban
 } from "lucide-react";
 import {
   Dialog,
@@ -26,17 +25,22 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import toast from "react-hot-toast";
 import { nutritionService, Nutrition } from "@/services/nutrition.service";
 
-// --- Schema ---
 const nutritionSchema = z.object({
   name: z.string().min(1, "Name is required"),
   defaultUnit: z.string().min(1, "Default unit is required"),
   icon: z.string().optional(),
+  isActive: z.boolean(),
 });
 type NutritionFormValues = z.infer<typeof nutritionSchema>;
 
@@ -52,7 +56,6 @@ export function NutritionTab() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editItem, setEditItem] = useState<Nutrition | null>(null);
   const [deleteItem, setDeleteItem] = useState<Nutrition | null>(null);
-  const [uploadItem, setUploadItem] = useState<Nutrition | null>(null);
 
   const fetchNutritions = async (q = search, cursor?: string, overrideLimit = limit) => {
     setLoading(true);
@@ -84,15 +87,7 @@ export function NutritionTab() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
-            onClick={() => fetchNutritions()}
-            variant="outline"
-            disabled={loading}
-            className="border-border/60 text-foreground hover:bg-muted gap-1.5 font-medium cursor-pointer"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+
           <Button
             onClick={() => setIsAddOpen(true)}
             className="bg-[#2d7a4f] hover:bg-[#236040] text-white gap-1.5 font-semibold cursor-pointer"
@@ -129,22 +124,23 @@ export function NutritionTab() {
             <thead>
               <tr className="border-b border-border/60 bg-muted/30 text-muted-foreground text-xs uppercase font-semibold">
                 <th className="py-3 px-4">Nutrition</th>
+                <th className="py-3 px-4">Slug</th>
                 <th className="py-3 px-4">Unit</th>
-                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Active</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
               {loading && nutritions.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#2d7a4f] mb-2" />
                     Loading nutritions...
                   </td>
                 </tr>
               ) : nutritions.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={5} className="py-12 text-center text-muted-foreground">
                     No nutritions found.
                   </td>
                 </tr>
@@ -160,46 +156,79 @@ export function NutritionTab() {
                             <Scale className="h-4 w-4 text-muted-foreground/50" />
                           )}
                         </div>
-                        <div>
-                          <div className="font-semibold text-foreground text-sm">{item.name}</div>
-                          <div className="text-xs text-muted-foreground font-mono">{item.slug}</div>
-                        </div>
+                        <div className="font-semibold text-foreground text-sm">{item.name}</div>
                       </div>
                     </td>
+                    <td className="py-3 px-4 text-xs text-muted-foreground font-mono">{item.slug}</td>
                     <td className="py-3 px-4 text-foreground/80 font-medium text-sm">{item.defaultUnit}</td>
                     <td className="py-3 px-4">
-                      <StatusBadge value={item.status} />
+                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${item.isActive ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-muted text-muted-foreground border-border"}`}>
+                        {item.isActive ? "Active" : "Inactive"}
+                      </span>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditItem(item)}
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-                          title="Edit"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setUploadItem(item)}
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-                          title="Upload Icon"
-                        >
-                          <ImageIcon className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteItem(item)}
-                          className="h-8 w-8 text-destructive/80 hover:text-destructive hover:bg-destructive/10 cursor-pointer"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-40 p-1">
+                          <button
+                            onClick={() => setEditItem(item)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors text-left text-foreground cursor-pointer rounded-md"
+                          >
+                            <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+                            Edit
+                          </button>
+                          
+                          {item.isActive ? (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await nutritionService.updateNutrition(item.id, { isActive: false });
+                                  toast.success("Marked as inactive");
+                                  fetchNutritions(search, history.length > 0 ? history[history.length - 1] : undefined, limit);
+                                } catch (err: any) {
+                                  toast.error(err?.response?.data?.message || "Failed to update");
+                                }
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors text-left text-amber-600 hover:text-amber-700 cursor-pointer rounded-md"
+                            >
+                              <Ban className="h-3.5 w-3.5 text-amber-600" />
+                              Mark Inactive
+                            </button>
+                          ) : (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await nutritionService.updateNutrition(item.id, { isActive: true });
+                                  toast.success("Marked as active");
+                                  fetchNutritions(search, history.length > 0 ? history[history.length - 1] : undefined, limit);
+                                } catch (err: any) {
+                                  toast.error(err?.response?.data?.message || "Failed to update");
+                                }
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors text-left text-emerald-600 hover:text-emerald-700 cursor-pointer rounded-md"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                              Mark Active
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => setDeleteItem(item)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors text-left text-destructive hover:text-destructive cursor-pointer rounded-md"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            Delete
+                          </button>
+                        </PopoverContent>
+                      </Popover>
                     </td>
                   </tr>
                 ))
@@ -244,7 +273,7 @@ export function NutritionTab() {
           item={editItem}
           isOpen={!!editItem}
           onClose={() => setEditItem(null)}
-          onSuccess={() => fetchNutritions()}
+          onSuccess={() => fetchNutritions(search, history.length > 0 ? history[history.length - 1] : undefined)}
         />
       )}
 
@@ -253,31 +282,25 @@ export function NutritionTab() {
           item={deleteItem}
           isOpen={!!deleteItem}
           onClose={() => setDeleteItem(null)}
-          onSuccess={() => fetchNutritions()}
+          onSuccess={() => fetchNutritions(search, history.length > 0 ? history[history.length - 1] : undefined)}
         />
       )}
 
-      {uploadItem && (
-        <UploadIconModal
-          item={uploadItem}
-          isOpen={!!uploadItem}
-          onClose={() => setUploadItem(null)}
-          onSuccess={() => fetchNutritions()}
-        />
-      )}
     </div>
   );
 }
 
 function AddNutritionModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors, isSubmitting } } = useForm<NutritionFormValues>({
+  const { register, handleSubmit, reset, setError, formState: { errors, isSubmitting } } = useForm<NutritionFormValues>({
     resolver: zodResolver(nutritionSchema),
-    defaultValues: { name: "", defaultUnit: "g", icon: "" }
+    defaultValues: { name: "", defaultUnit: "g", icon: "", isActive: true }
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+
 
   useEffect(() => {
     if (isOpen) {
@@ -289,6 +312,14 @@ function AddNutritionModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; on
   const onSubmit = async (values: NutritionFormValues) => {
     setIsUploading(true);
     try {
+      const existing = await nutritionService.getNutritions({ search: values.name });
+      const duplicate = existing.data?.items?.find((i: Nutrition) => i.name.toLowerCase() === values.name.toLowerCase());
+      if (duplicate) {
+        setError("name", { type: "manual", message: "A nutrition with this name already exists" });
+        setIsUploading(false);
+        return;
+      }
+
       const created = await nutritionService.createNutrition(values);
       const createdId = created.data?.id || (created as any).id;
 
@@ -326,6 +357,8 @@ function AddNutritionModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; on
             <Input {...register("name")} placeholder="e.g. Protein" />
             {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
+
+
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Default Unit</label>
@@ -377,14 +410,14 @@ function AddNutritionModal({ isOpen, onClose, onSuccess }: { isOpen: boolean; on
 
 const editNutritionSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  status: z.string().min(1, "Status is required"),
+  defaultUnit: z.string().min(1, "Default unit is required"),
 });
 type EditNutritionFormValues = z.infer<typeof editNutritionSchema>;
 
 function EditNutritionModal({ item, isOpen, onClose, onSuccess }: { item: Nutrition; isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<EditNutritionFormValues>({
+  const { register, handleSubmit, reset, setError, formState: { errors, isSubmitting } } = useForm<EditNutritionFormValues>({
     resolver: zodResolver(editNutritionSchema),
-    defaultValues: { name: item.name, status: item.status },
+    defaultValues: { name: item.name, defaultUnit: item.defaultUnit || "g" },
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -393,7 +426,7 @@ function EditNutritionModal({ item, isOpen, onClose, onSuccess }: { item: Nutrit
 
   useEffect(() => {
     if (isOpen) {
-      reset({ name: item.name, status: item.status });
+      reset({ name: item.name, defaultUnit: item.defaultUnit || "g" });
       setSelectedFile(null);
     }
   }, [isOpen, item, reset]);
@@ -401,6 +434,14 @@ function EditNutritionModal({ item, isOpen, onClose, onSuccess }: { item: Nutrit
   const onSubmit = async (values: EditNutritionFormValues) => {
     setIsUploading(true);
     try {
+      const existing = await nutritionService.getNutritions({ search: values.name });
+      const duplicate = existing.data?.items?.find((i: Nutrition) => i.name.toLowerCase() === values.name.toLowerCase() && i.id !== item.id);
+      if (duplicate) {
+        setError("name", { type: "manual", message: "A nutrition with this name already exists" });
+        setIsUploading(false);
+        return;
+      }
+
       await nutritionService.updateNutrition(item.id, values);
 
       if (selectedFile) {
@@ -438,16 +479,9 @@ function EditNutritionModal({ item, isOpen, onClose, onSuccess }: { item: Nutrit
             {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Status</label>
-            <select
-              {...register("status")}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-            >
-              <option value="approved">Approved</option>
-              <option value="pending">Pending</option>
-              <option value="rejected">Rejected</option>
-            </select>
-            {errors.status && <p className="text-xs text-destructive">{errors.status.message}</p>}
+            <label className="text-sm font-medium">Default Unit</label>
+            <Input {...register("defaultUnit")} placeholder="e.g. g, mg, kcal" required />
+            {errors.defaultUnit && <p className="text-xs text-destructive">{errors.defaultUnit.message}</p>}
           </div>
 
           <div className="space-y-2">
@@ -530,72 +564,3 @@ function DeleteNutritionModal({ item, isOpen, onClose, onSuccess }: { item: Nutr
   );
 }
 
-function UploadIconModal({ item, isOpen, onClose, onSuccess }: { item: Nutrition; isOpen: boolean; onClose: () => void; onSuccess: () => void }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const res = await nutritionService.getUploadUrl(file.type, item.id);
-      const data = res?.data || res;
-      if (!data?.presignedUrl) throw new Error("No upload URL returned");
-
-      const uploadRes = await fetch(data.presignedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!uploadRes.ok) throw new Error("S3 upload failed");
-
-      toast.success("Icon uploaded successfully");
-      onSuccess();
-      onClose();
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to upload icon");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Upload Icon - {item.name}</DialogTitle>
-        </DialogHeader>
-        <div className="py-6 flex flex-col items-center justify-center gap-4">
-          <div className="h-16 w-16 bg-muted border border-border rounded-lg flex items-center justify-center overflow-hidden">
-            {item.icon ? (
-              <img src={item.icon} alt={item.name} className="h-full w-full object-contain p-2" />
-            ) : (
-              <Scale className="h-8 w-8 text-muted-foreground/50" />
-            )}
-          </div>
-
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="w-full max-w-xs"
-          >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ImageIcon className="h-4 w-4 mr-2" />}
-            {uploading ? "Uploading..." : "Select New Image"}
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleUpload}
-          />
-        </div>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={uploading}>Close</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}

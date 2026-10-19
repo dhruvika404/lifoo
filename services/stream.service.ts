@@ -2,19 +2,24 @@ import { apiClient } from "./api";
 
 export interface ActiveStreamItem {
   id: string;
-  slotId: string;
-  chefId: string;
-  provider: string;
-  livekitRoomName: string;
-  state: "active" | "inactive" | string;
-  scheduledStartAt: string;
-  startedAt: string;
-  endedAt: string | null;
-  deletionScheduledAt: string | null;
-  recordingB2Path: string | null;
-  reconnectCount: number;
-  createdAt: string;
-  updatedAt: string;
+  slotId?: string;
+  chefId?: string;
+  chefName?: string;
+  roomId?: string;
+  livekitRoomName?: string;
+  provider?: string;
+  health?: string;
+  state?: "active" | "inactive" | string;
+  scheduledStartAt?: string;
+  startTime?: string;
+  startedAt?: string;
+  endedAt?: string | null;
+  deletionScheduledAt?: string | null;
+  recordingB2Path?: string | null;
+  viewerCount?: number;
+  reconnectCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface GetActiveStreamsResponse {

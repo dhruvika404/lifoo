@@ -268,16 +268,10 @@ export const verificationService = {
     kitchenAddressId: string,
     payload: ReviewPayload
   ): Promise<{ ok: boolean; data: any }> => {
-    const actionMapped =
-      payload.action === "approve"
-        ? "approved"
-        : payload.action === "reject"
-        ? "rejected"
-        : "resubmitted";
     const { data } = await apiClient.post<{ ok: boolean; data: any }>(
       `/admin/v1/verifications/kitchen-addresses/${kitchenAddressId}/review`,
       {
-        action: actionMapped,
+        action: payload.action,
         ...(payload.reason ? { reason: payload.reason } : {}),
       }
     );

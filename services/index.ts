@@ -75,3 +75,15 @@ export type {
   GetProductsResponse,
   GetKitchenAddressesResponse,
 } from "./verification.service";
+export { splashScreenService } from "./splashScreen.service";
+export type {
+  SplashScreen,
+  TargetPlatform,
+  TargetAudience,
+  GetSplashScreensParams,
+  GetSplashScreensResponse,
+  CreateSplashScreenPayload,
+  UpdateSplashScreenPayload,
+  ReorderItem,
+  ReorderSplashScreensPayload,
+} from "./splashScreen.service";

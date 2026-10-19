@@ -44,7 +44,7 @@ export const keywordService = {
     return data;
   },
 
-  updateKeyword: async (id: string, payload: { active: boolean }): Promise<any> => {
+  updateKeyword: async (id: string, payload: { name?: string; active?: boolean }): Promise<any> => {
     const { data } = await apiClient.patch(`/admin/v1/keywords/${id}`, payload);
     return data;
   },

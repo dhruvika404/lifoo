@@ -30,6 +30,8 @@ import {
   User,
   LogOut,
   IndianRupee,
+  Clapperboard,
+  Smartphone,
 } from "lucide-react";
 import { useAdminStore } from "@/store/adminStore";
 import { useAuthStore } from "@/store/authStore";
@@ -90,6 +92,7 @@ const groups: SidebarGroup[] = [
       { title: "Orders", url: "/orders", icon: ShoppingBag, module: "ORDER" },
       { title: "Delivery", url: "/delivery", icon: Truck, module: "DELIVERY" },
       { title: "Live Streams", url: "/streams", icon: Radio, module: "CHEF" },
+      // { title: "Reels", url: "/reels", icon: Clapperboard, module: "CHEF" },
     ],
   },
   {
@@ -117,6 +120,7 @@ const groups: SidebarGroup[] = [
     label: "Platform",
     items: [
       { title: "Cities & Zones", url: "/cities", icon: MapPin, module: "DELIVERY" },
+      { title: "Splash Screens", url: "/splash-screens", icon: Smartphone, module: "USER_ACCESS" },
       { title: "Admin Users", url: "/admins", icon: UserCog, module: "USER_ACCESS" },
       { title: "Access Roles", url: "/roles", icon: ShieldCheck, module: "USER_ACCESS" },
       { title: "Pricing Config", url: "/pricing", icon: IndianRupee, module: "SEAL" },
